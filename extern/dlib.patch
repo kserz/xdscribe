@@ -1,0 +1,720 @@
+diff --git a/dlib/global_optimization/find_max_global.h b/dlib/global_optimization/find_max_global.h
+index 8eb16f7..7cbce61 100644
+--- a/dlib/global_optimization/find_max_global.h
++++ b/dlib/global_optimization/find_max_global.h
+@@ -6,6 +6,7 @@
+ #include "find_max_global_abstract.h"
+ #include "global_function_search.h"
+ #include "../metaprogramming.h"
++#include <atomic>
+ #include <utility>
+ #include <chrono>
+ #include <memory>
+@@ -108,9 +109,18 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         size_t max_calls = std::numeric_limits<size_t>::max();
+     };
+ 
++    struct function_value
++    {
++        explicit function_value(double value) : value(value) {}
++        double value;
++    };
++
++
+ // ----------------------------------------------------------------------------------------
+ 
+     const auto FOREVER = std::chrono::hours(24*356*290); // 290 years
++    const auto MAX_TARGET_VALUE = function_value(std::numeric_limits<double>::max());
++    const auto MIN_TARGET_VALUE = function_value(std::numeric_limits<double>::lowest());
+ 
+ // ----------------------------------------------------------------------------------------
+ 
+@@ -125,6 +135,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+             std::vector<function_spec> specs,
+             const max_function_calls num,
+             const std::chrono::nanoseconds max_runtime,
++            const function_value target_value,
+             double solver_epsilon,
+             double ymult
+         ) 
+@@ -158,12 +169,14 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+             opt.set_solver_epsilon(solver_epsilon);
+ 
+             const auto time_to_stop = std::chrono::steady_clock::now() + max_runtime;
++            std::atomic_flag target_not_reached;
++            target_not_reached.test_and_set();
+ 
+             // Now run the main solver loop.
+-            for (size_t i = 0; i < num.max_calls && std::chrono::steady_clock::now() < time_to_stop; ++i)
++            for (size_t i = 0; i < num.max_calls && std::chrono::steady_clock::now() < time_to_stop && target_not_reached.test_and_set(); ++i)
+             {
+                 auto next = std::make_shared<function_evaluation_request>(opt.get_next_x());
+-                auto execute_call = [&functions,&ymult,&log_scale,next]() {
++                auto execute_call = [&functions,&target_value,&ymult,&log_scale,&target_not_reached,next]() {
+                     matrix<double,0,1> x = next->x();
+                     // Undo any log-scaling that was applied to the variables before we pass them
+                     // to the functions being optimized.
+@@ -173,6 +186,9 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+                             x(j) = std::exp(x(j));
+                     }
+                     double y = ymult*call_function_and_expand_args(functions[next->function_idx()], x);
++                    if (y > ymult * target_value.value) {
++                        target_not_reached.clear();
++                    }
+                     next->set(y);
+                 };
+ 
+@@ -202,6 +218,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+             std::vector<function_spec> specs,
+             const max_function_calls num,
+             const std::chrono::nanoseconds max_runtime,
++            const function_value target_value,
+             double solver_epsilon,
+             double ymult
+         ) 
+@@ -209,7 +226,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+             // disabled, don't use any threads
+             thread_pool tp(0);
+ 
+-            return find_max_global(tp, functions, std::move(specs), num, max_runtime, solver_epsilon, ymult);
++            return find_max_global(tp, functions, std::move(specs), num, max_runtime, target_value, solver_epsilon, ymult);
+         }
+     }
+ 
+@@ -223,10 +240,11 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         std::vector<function_spec> specs,
+         const max_function_calls num,
+         const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MAX_TARGET_VALUE,
+         double solver_epsilon = 0
+-    ) 
++    )
+     {
+-        return impl::find_max_global(functions, std::move(specs), num, max_runtime, solver_epsilon, +1);
++        return impl::find_max_global(functions, std::move(specs), num, max_runtime, target_value, solver_epsilon, +1);
+     }
+ 
+     template <
+@@ -237,10 +255,11 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         std::vector<function_spec> specs,
+         const max_function_calls num,
+         const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MIN_TARGET_VALUE,
+         double solver_epsilon = 0
+-    ) 
++    )
+     {
+-        return impl::find_max_global(functions, std::move(specs), num, max_runtime, solver_epsilon, -1);
++        return impl::find_max_global(functions, std::move(specs), num, max_runtime, target_value, solver_epsilon, -1);
+     }
+ 
+     template <
+@@ -252,10 +271,11 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         std::vector<function_spec> specs,
+         const max_function_calls num,
+         const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MAX_TARGET_VALUE,
+         double solver_epsilon = 0
+-    ) 
++    )
+     {
+-        return impl::find_max_global(tp, functions, std::move(specs), num, max_runtime, solver_epsilon, +1);
++        return impl::find_max_global(tp, functions, std::move(specs), num, max_runtime, target_value, solver_epsilon, +1);
+     }
+ 
+     template <
+@@ -267,10 +287,71 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         std::vector<function_spec> specs,
+         const max_function_calls num,
+         const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MIN_TARGET_VALUE,
+         double solver_epsilon = 0
+-    ) 
++    )
+     {
+-        return impl::find_max_global(tp, functions, std::move(specs), num, max_runtime, solver_epsilon, -1);
++        return impl::find_max_global(tp, functions, std::move(specs), num, max_runtime, target_value, solver_epsilon, -1);
++    }
++
++// ----------------------------------------------------------------------------------------
++
++    template <
++        typename funct
++        >
++    std::pair<size_t,function_evaluation> find_max_global (
++        std::vector<funct>& functions,
++        std::vector<function_spec> specs,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime,
++        double solver_epsilon = 0
++    )
++    {
++        return impl::find_max_global(functions, std::move(specs), num, max_runtime, MAX_TARGET_VALUE, solver_epsilon, +1);
++    }
++
++    template <
++        typename funct
++        >
++    std::pair<size_t,function_evaluation> find_min_global (
++        std::vector<funct>& functions,
++        std::vector<function_spec> specs,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime,
++        double solver_epsilon = 0
++    )
++    {
++        return impl::find_max_global(functions, std::move(specs), num, max_runtime, MIN_TARGET_VALUE, solver_epsilon, -1);
++    }
++
++    template <
++        typename funct
++        >
++    std::pair<size_t,function_evaluation> find_max_global (
++        thread_pool& tp,
++        std::vector<funct>& functions,
++        std::vector<function_spec> specs,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime,
++        double solver_epsilon = 0
++    )
++    {
++        return impl::find_max_global(tp, functions, std::move(specs), num, max_runtime, MAX_TARGET_VALUE, solver_epsilon, +1);
++    }
++
++    template <
++        typename funct
++        >
++    std::pair<size_t,function_evaluation> find_min_global (
++        thread_pool& tp,
++        std::vector<funct>& functions,
++        std::vector<function_spec> specs,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime,
++        double solver_epsilon = 0
++    )
++    {
++        return impl::find_max_global(tp, functions, std::move(specs), num, max_runtime, MIN_TARGET_VALUE, solver_epsilon, -1);
+     }
+ 
+ // ----------------------------------------------------------------------------------------
+@@ -285,12 +366,13 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const std::vector<bool>& is_integer_variable,
+         const max_function_calls num,
+         const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MAX_TARGET_VALUE,
+         double solver_epsilon = 0
+-    ) 
++    )
+     {
+         std::vector<funct> functions(1,std::move(f));
+         std::vector<function_spec> specs(1, function_spec(bound1, bound2, is_integer_variable));
+-        return find_max_global(functions, std::move(specs), num, max_runtime, solver_epsilon).second;
++        return find_max_global(functions, std::move(specs), num, max_runtime, target_value, solver_epsilon).second;
+     }
+ 
+     template <
+@@ -303,12 +385,13 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const std::vector<bool>& is_integer_variable,
+         const max_function_calls num,
+         const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MIN_TARGET_VALUE,
+         double solver_epsilon = 0
+-    ) 
++    )
+     {
+         std::vector<funct> functions(1,std::move(f));
+         std::vector<function_spec> specs(1, function_spec(bound1, bound2, is_integer_variable));
+-        return find_min_global(functions, std::move(specs), num, max_runtime, solver_epsilon).second;
++        return find_min_global(functions, std::move(specs), num, max_runtime, target_value, solver_epsilon).second;
+     }
+ 
+     template <
+@@ -322,6 +405,84 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const std::vector<bool>& is_integer_variable,
+         const max_function_calls num,
+         const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MAX_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        std::vector<funct> functions(1,std::move(f));
++        std::vector<function_spec> specs(1, function_spec(bound1, bound2, is_integer_variable));
++        return find_max_global(tp, functions, std::move(specs), num, max_runtime, target_value, solver_epsilon).second;
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        thread_pool& tp,
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const std::vector<bool>& is_integer_variable,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MIN_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        std::vector<funct> functions(1,std::move(f));
++        std::vector<function_spec> specs(1, function_spec(bound1, bound2, is_integer_variable));
++        return find_min_global(tp, functions, std::move(specs), num, max_runtime, target_value, solver_epsilon).second;
++    }
++
++// ----------------------------------------------------------------------------------------
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const std::vector<bool>& is_integer_variable,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime,
++        double solver_epsilon = 0
++    )
++    {
++        std::vector<funct> functions(1,std::move(f));
++        std::vector<function_spec> specs(1, function_spec(bound1, bound2, is_integer_variable));
++        return find_max_global(functions, std::move(specs), num, max_runtime, solver_epsilon).second;
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const std::vector<bool>& is_integer_variable,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime,
++        double solver_epsilon = 0
++    )
++    {
++        std::vector<funct> functions(1,std::move(f));
++        std::vector<function_spec> specs(1, function_spec(bound1, bound2, is_integer_variable));
++        return find_min_global(functions, std::move(specs), num, max_runtime, solver_epsilon).second;
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        thread_pool& tp,
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const std::vector<bool>& is_integer_variable,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -340,7 +501,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const matrix<double,0,1>& bound2,
+         const std::vector<bool>& is_integer_variable,
+         const max_function_calls num,
+-        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -424,6 +585,74 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const matrix<double,0,1>& bound2,
+         const max_function_calls num,
+         const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MAX_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(std::move(f), bound1, bound2, std::vector<bool>(bound1.size(),false), num, max_runtime, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MIN_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(std::move(f), bound1, bound2, std::vector<bool>(bound1.size(),false), num, max_runtime, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        thread_pool& tp,
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MAX_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(tp, std::move(f), bound1, bound2, std::vector<bool>(bound1.size(),false), num, max_runtime, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        thread_pool& tp,
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MIN_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(tp, std::move(f), bound1, bound2, std::vector<bool>(bound1.size(),false), num, max_runtime, target_value, solver_epsilon);
++    }
++
++// ----------------------------------------------------------------------------------------
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -438,7 +667,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const matrix<double,0,1>& bound1,
+         const matrix<double,0,1>& bound2,
+         const max_function_calls num,
+-        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -454,7 +683,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const matrix<double,0,1>& bound1,
+         const matrix<double,0,1>& bound2,
+         const max_function_calls num,
+-        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -470,7 +699,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const matrix<double,0,1>& bound1,
+         const matrix<double,0,1>& bound2,
+         const max_function_calls num,
+-        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -548,6 +777,74 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const double bound2,
+         const max_function_calls num,
+         const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MAX_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(std::move(f), matrix<double,0,1>({bound1}), matrix<double,0,1>({bound2}), num, max_runtime, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        funct f,
++        const double bound1,
++        const double bound2,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MIN_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(std::move(f), matrix<double,0,1>({bound1}), matrix<double,0,1>({bound2}), num, max_runtime, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        thread_pool& tp,
++        funct f,
++        const double bound1,
++        const double bound2,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MAX_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(tp, std::move(f), matrix<double,0,1>({bound1}), matrix<double,0,1>({bound2}), num, max_runtime, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        thread_pool& tp,
++        funct f,
++        const double bound1,
++        const double bound2,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const function_value target_value = MIN_TARGET_VALUE,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(tp, std::move(f), matrix<double,0,1>({bound1}), matrix<double,0,1>({bound2}), num, max_runtime, target_value, solver_epsilon);
++    }
++
++// ----------------------------------------------------------------------------------------
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        funct f,
++        const double bound1,
++        const double bound2,
++        const max_function_calls num,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -562,7 +859,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const double bound1,
+         const double bound2,
+         const max_function_calls num,
+-        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -578,7 +875,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const double bound1,
+         const double bound2,
+         const max_function_calls num,
+-        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -594,7 +891,7 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         const double bound1,
+         const double bound2,
+         const max_function_calls num,
+-        const std::chrono::nanoseconds max_runtime = FOREVER,
++        const std::chrono::nanoseconds max_runtime,
+         double solver_epsilon = 0
+     ) 
+     {
+@@ -845,6 +1142,190 @@ template <typename T> static auto go(T&& f, const matrix<double, 0, 1>& a) -> de
+         return find_min_global(tp, std::move(f), bound1, bound2, is_integer_variable, max_function_calls(), max_runtime, solver_epsilon);
+     }
+ 
++// ----------------------------------------------------------------------------------------
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const std::vector<bool>& is_integer_variable,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(std::move(f), bound1, bound2, is_integer_variable, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const std::vector<bool>& is_integer_variable,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(std::move(f), bound1, bound2, is_integer_variable, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        thread_pool& tp,
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const std::vector<bool>& is_integer_variable,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(tp, std::move(f), bound1, bound2, is_integer_variable, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        thread_pool& tp,
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const std::vector<bool>& is_integer_variable,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(tp, std::move(f), bound1, bound2, is_integer_variable, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++// ----------------------------------------------------------------------------------------
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(std::move(f), bound1, bound2, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(std::move(f), bound1, bound2, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        thread_pool& tp,
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(tp, std::move(f), bound1, bound2, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        thread_pool& tp,
++        funct f,
++        const matrix<double,0,1>& bound1,
++        const matrix<double,0,1>& bound2,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(tp, std::move(f), bound1, bound2, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++// ----------------------------------------------------------------------------------------
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        funct f,
++        const double bound1,
++        const double bound2,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(std::move(f), bound1, bound2, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        funct f,
++        const double bound1,
++        const double bound2,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(std::move(f), bound1, bound2, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_max_global (
++        thread_pool& tp,
++        funct f,
++        const double bound1,
++        const double bound2,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_max_global(tp, std::move(f), bound1, bound2, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
++    template <
++        typename funct
++        >
++    function_evaluation find_min_global (
++        thread_pool& tp,
++        funct f,
++        const double bound1,
++        const double bound2,
++        const function_value target_value,
++        double solver_epsilon = 0
++    )
++    {
++        return find_min_global(tp, std::move(f), bound1, bound2, max_function_calls(), FOREVER, target_value, solver_epsilon);
++    }
++
+ // ----------------------------------------------------------------------------------------
+ 
+ }
