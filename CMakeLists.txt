@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10...3.14)
 
 project(
-    xscribe
+    xdscribe
     LANGUAGES CXX
 )
 
@@ -14,7 +14,7 @@ endif()
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
 
 add_executable(
-    xscribe
+    xdscribe
 
     source/inscriber_factory.cpp
     source/inscriber_factory.h
@@ -108,15 +108,15 @@ add_executable(
     source/utility/subsets.h
 )
 
-target_compile_features(xscribe PRIVATE cxx_std_17)
-target_include_directories(xscribe PRIVATE "${PROJECT_SOURCE_DIR}/source")
+target_compile_features(xdscribe PRIVATE cxx_std_17)
+target_include_directories(xdscribe PRIVATE "${PROJECT_SOURCE_DIR}/source")
 
 set(EXTERNAL_CACHE_DIR "${PROJECT_SOURCE_DIR}/extern/cache")
 include(add_boost)
 include(external_utils)
 
 add_external_lib(
-    xscribe
+    xdscribe
     eigen
     "https://github.com/eigenteam/eigen-git-mirror.git"
     "3.3.7"
@@ -140,7 +140,7 @@ get_external_source(
 )
 set(CGAL_DIR "${EXTERNAL_CACHE_DIR}/CGAL")
 find_package(CGAL)
-target_link_libraries(xscribe PRIVATE CGAL::CGAL)
+target_link_libraries(xdscribe PRIVATE CGAL::CGAL)
 
 set(NLOPT_FORTRAN OFF CACHE BOOL "" FORCE)
 set(NLOPT_GUILE OFF CACHE BOOL "" FORCE)
@@ -149,7 +149,7 @@ set(NLOPT_OCTAVE OFF CACHE BOOL "" FORCE)
 set(NLOPT_PYTHON OFF CACHE BOOL "" FORCE)
 set(NLOPT_SWIG OFF CACHE BOOL "" FORCE)
 add_external_lib(
-    xscribe
+    xdscribe
     nlopt
     "https://github.com/stevengj/nlopt.git"
     "v2.6.1"
@@ -167,7 +167,7 @@ set(DLIB_USE_LAPACK OFF CACHE BOOL "" FORCE)
 set(DLIB_USE_LAPACK OFF CACHE BOOL "" FORCE)
 set(DLIB_USE_MKL_FFT OFF CACHE BOOL "" FORCE)
 add_external_lib(
-    xscribe
+    xdscribe
     dlib
     "https://github.com/davisking/dlib.git"
     "v19.17"

@@ -1,4 +1,4 @@
-// This file is part of xscribe
+// This file is part of xdscribe
 //
 // Copyright (C) 2019 Sergey Karpukhin <contact@kserz.rocks>
 //
