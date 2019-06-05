@@ -4,6 +4,20 @@ This code is part of the so called **inverse branch-and-bound technique** resear
 
 All the code in this repository is licensed under the GPLv3 license located in [LICENSE](LICENSE) file. Note that some external libraries are automatically downloaded and used having other licenses compatible with the main one.
 
-# Inverse branch-and-bound technique description
+### Compiling
 
-# Problem description and xscribe usage
+This is a C++17 CMake project. So normally you should install your platform's recent C++ development tools along with [git](https://git-scm.com/) and [CMake](https://cmake.org), then clone this repository and build similarly to other CMake-based projects. For example, in Unix command line you should type something like that:
+
+```
+git clone https://github.com/kserz/xscribe.git
+cd xscribe
+mkdir build
+cd build
+cmake ..
+cmake --build .
+```
+This will download all the dependencies under `extern/cache` directory and build xscribe executable. Then run `xscribe` with no arguments to see the help message.
+
+### Problem description and xscribe usage
+
+### Inverse branch-and-bound technique description
