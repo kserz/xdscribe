@@ -22,6 +22,7 @@ This will download all the dependencies under `extern/cache` directory and build
 
 Problem solved by xdscribe is as follows. Given a rough stone model(contour) and a target shape(pattern) find the largest placement of the pattern inside the contour preserving orientation, i.e. allowing only translation and scaling of the shape. For a further problem description see
 > V.H. Nguyen, J.-J. Strodiot: Computing a global optimal solution to a design centering problem. // Mathematical Programming, Vol. 13, pp 271-369. (2004)
+
 and references therein.
 
 The general `xdscribe` usage is as follows
