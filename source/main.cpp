@@ -82,13 +82,9 @@ int main(int argc, char** argv)
                 result = (*inscriber)(pattern, contour, stopPredicate);
             }
         }
-        double singleTryRuntime =
-            Stopwatch::measurement(0).runtimeSeconds() / tries;
 
         std::cout.precision(15);
-        std::cout << "Center: \n" << result.center()
-                  << "\nRadius: " << result.radius();
-        std::cout << "\nSteps: " << Stats::instance().inscriberSteps;
+        std::cout << "Steps: " << Stats::instance().inscriberSteps;
         std::cout << "\nGeometry elements: "
                   << Stats::instance().geometryElementsCount.max();
         std::cout << "\nMax state size: " << Stats::instance().gridSize.max();
@@ -119,7 +115,11 @@ int main(int argc, char** argv)
 
         std::cout << "\nObjective calls: " << Stats::instance().objectiveCalls;
 
-        std::cout << "\n\nRuntime of a single try: " << singleTryRuntime;
+        std::cout << "\n\nResult center: " << result.center()
+                  << "\nResult radius: " << result.radius();
+
+        std::cout << "\n\nRuntime of a single try: "
+                  << Stopwatch::measurement(0).runtimeSeconds() / tries;
 
         std::cout << std::endl;
     } catch (const std::exception& e) {
