@@ -270,7 +270,7 @@ const auto graphicInscriberFactory = Parametrized::composition<
     ConvexDecompositor,
     MinkowskiSumRasterizer,
     PolytopeRasterizer>(
-        "graphic inscriber",
+        "graphic inverse inscriber",
         {[] (
                 ConvexDecompositor convexDecompositor,
                 MinkowskiSumRasterizer minkowskiSumRasterizer,
