@@ -38,15 +38,19 @@ int main(int argc, char** argv)
         std::cout << "\nUsage: " << argv[0]
                   << " contour_file pattern_file stop_predicate inscriber_code "
                      "[ tries [ direct_magic ] ]" << std::endl;
-        std::cout << "\nInscriber code is parsed according "
-                     "to the following scheme.\n";
-        dumpInscriberDescription(std::cout);
+        std::cout << "\nContour and pattern should be Wavefront .OBJ files "
+                     "consisting of triangles only.\n";
         std::cout << "\nStop predicate is one of the following:\n"
                   << "\t<target precision>\n"
                   << "\tv<target value>\n"
                   << "\ts<seconds to run>\n";
-        std::cout << "\nDIRECT magic is used by the DIRECT algorithm "
-                     "of the NLopt library\n";
+        std::cout << "\nInscriber code is parsed according "
+                     "to the following scheme.\n";
+        dumpInscriberDescription(std::cout);
+        std::cout << "\nTries specifies the number of algorithm runs within "
+                  << "the single binary execution.\n";
+        std::cout << "\ndirect_magic is the magic epsilon used by the DIRECT "
+                     "algorithm of the NLopt library.\n";
         std::cout << std::endl;
         return -1;
     }

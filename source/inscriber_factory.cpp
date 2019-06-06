@@ -192,9 +192,9 @@ Parametrized::Factory<Result> selectionFactory(
 
 // --- Inscriber factory definition
 
-const auto convexDecompositorFactory =
-    selectionFactory<ConvexDecompositor>(
-        "convex decompositor",
+const auto convexDecompositorFactory = [] (const auto description) {
+    return selectionFactory<ConvexDecompositor>(
+        std::move(description),
         {
             {'c', Parametrized::valueFactory<ConvexDecompositor>(
                 "dummy convex decompositor", dummyDecomposition)},
@@ -203,6 +203,7 @@ const auto convexDecompositorFactory =
             {'s', Parametrized::valueFactory<ConvexDecompositor>(
                 "star convex decompositor", starDecomposition)}
         });
+};
 
 const auto facetRasterizerFactory =
     selectionFactory<FacetRasterizer>(
@@ -229,9 +230,10 @@ const auto innerRegionRasterizerFactory =
                  rasterizeInnerRegionSequentally)}
         });
 
-const auto polytopeRasterizerFactory = Parametrized::composition<
-    PolytopeRasterizer, FacetRasterizer, InnerRegionRasterizer>(
-        "polytope rasterizer",
+const auto polytopeRasterizerFactory = [] (const auto description) {
+    return Parametrized::composition<
+            PolytopeRasterizer, FacetRasterizer, InnerRegionRasterizer>(
+        description,
         {[] (
                 FacetRasterizer facetRasterizer,
                 InnerRegionRasterizer innerRegionRasterizer,
@@ -242,6 +244,7 @@ const auto polytopeRasterizerFactory = Parametrized::composition<
         }},
         facetRasterizerFactory,
         innerRegionRasterizerFactory);
+};
 
 const auto minkowskiSumRasterizerFactory =
     selectionFactory<MinkowskiSumRasterizer>(
@@ -259,7 +262,7 @@ const auto minkowskiSumRasterizerFactory =
                             polytopePartRasterizer(
                                 std::move(polytopeRasterizer)));
                     }},
-                    polytopeRasterizerFactory)}
+                    polytopeRasterizerFactory("convex part polytope rasterizer"))}
         });
 
 const auto graphicInscriberFactory = Parametrized::composition<
@@ -278,9 +281,9 @@ const auto graphicInscriberFactory = Parametrized::composition<
                 std::move(minkowskiSumRasterizer),
                 std::move(polytopeRasterizer));
         }},
-        convexDecompositorFactory,
+        convexDecompositorFactory("pattern convex decompositor"),
         minkowskiSumRasterizerFactory,
-        polytopeRasterizerFactory);
+        polytopeRasterizerFactory("contour polytope rasterizer"));
 
 const auto objectiveBounderFactory =
     selectionFactory<ObjectiveBounder>(
