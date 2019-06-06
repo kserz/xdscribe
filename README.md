@@ -21,7 +21,7 @@ This will download all the dependencies under `extern/cache` directory and build
 ### Problem description and xdscribe usage
 
 Problem solved by xdscribe is as follows. Given a rough stone model(contour) and a target shape(pattern) find the largest placement of the pattern inside the contour preserving orientation, i.e. allowing only translation and scaling of the shape. For a further problem description see
-> V.H. Nguyen, J.-J. Strodiot: Computing a global optimal solution to a design centering problem. // Mathematical Programming, Vol. 13, pp 271-369. (2004)
+> V.H. Nguyen, J.-J. Strodiot: Computing a global optimal solution to a design centering problem. // Mathematical Programming, Vol. 53, pp 111-123. (1992)
 
 and references therein.
 
@@ -49,3 +49,9 @@ For example, to test run after building under `build` subdirectory in Unix comma
 ```
 
 ### Inverse branch-and-bound technique description
+
+The main idea of the inverse technique is to step away from the conventional optimization framework based on a user-defined function computing the objective value at a given point of the domain. Instead we depend on a procedure evaluating the domain region with objective bounded by a given value.
+
+Within the branch-and-bound approach this means that we branch on the objective value, like the well-known [bisection method](https://en.wikipedia.org/wiki/Bisection_method), than bound the region directly by pruning irrelevant area, and repeat these steps ensuring the region to be non-empty. The graphical inverse method implemented by xdscribe represents the regions by images on a volumetric raster consisting of inner, boundary and outer [voxels](https://en.wikipedia.org/wiki/Voxel). The images once acquired make region bounding and checking non-emptiness trivial tasks.
+
+For a design centering problem it remains to explain the procedure to obtain a region image with bounded objective value. This is done using the voxelization of contour [erosion](https://en.wikipedia.org/wiki/Erosion_(morphology)) by inverted pattern which means filling the voxels too close to contour and thus not containing pattern placements of an appropriate scale. The erosion itself is implemented by the well-known [Minkowski sum](https://en.wikipedia.org/wiki/Minkowski_addition) algorithms.
