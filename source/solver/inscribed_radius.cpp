@@ -19,13 +19,12 @@ double InscribedRadius::lipschitzConstant(const Polytope& starShapedPattern)
     double result = 0.;
 
     starShapedPattern.facetGeometries().process([&] (const Facet& face) {
-        auto normal = unitNormal(face);
         // Scaling the pattern by such a value
         // moves every face over 1 unit along the normal
         // thus filling all the points closer than 1 unit
         // to the pattern boundary.
-        double scale = 1. / normal.dot(face[0]);
-        result = std::max(result, std::fabs(scale));
+        const double scale = std::fabs(1. / unitNormal(face).dot(face[0]));
+        result = std::max(result, scale);
     });
 
     return result;
@@ -40,11 +39,15 @@ InscribedRadius::InscribedRadius(
 double InscribedRadius::operator ()(const Point& point) const
 {
     double minScale = -1.;
+    size_t usedElementsCount = 0;
+
     for (const auto& system : systems_) {
+        ++usedElementsCount;
         double scale = findIntersectionScale(system, point);
         if (scale < -MEPS) {
             continue;
         } else if (scale < MEPS) {
+            Stats::instance().geometryElementsCount.report(usedElementsCount);
             // Ensure result to be always non-negative
             return 0.;
         }
@@ -54,10 +57,10 @@ double InscribedRadius::operator ()(const Point& point) const
         }
     }
 
+    Stats::instance().geometryElementsCount.report(usedElementsCount);
+
     // Nontrivial polytopes should intersect at some scale
     assert(minScale > 0.);
-
-    ++Stats::instance().objectiveCalls;
 
     return minScale;
 }
@@ -126,8 +129,6 @@ InscribedRadius::precomputeSystems(
             });
         });
     }
-
-    Stats::instance().geometryElementsCount.report(result.size());
 
     return result;
 }

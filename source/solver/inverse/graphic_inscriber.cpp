@@ -16,43 +16,57 @@ const double RADIUS_STEP_RATIO = 1.;
 
 GraphicInscriber::GraphicInscriber(
         ConvexDecompositor convexDecompositor,
-        MinkowskiSumRasterizer minkowskiSumRasterizer,
-        PolytopeRasterizer contourRasterizer)
+        DomainEstimatorFactory domainEstimatorFactory,
+        AccuracyEstimatorFactory accuracyEstimatorFactory)
     : convexDecompositor_(std::move(convexDecompositor))
-    , msumRasterizer_(std::move(minkowskiSumRasterizer))
-    , contourRasterizer_(std::move(contourRasterizer))
+    , domainEstimatorFactory_(std::move(domainEstimatorFactory))
+    , accuracyEstimatorFactory_(std::move(accuracyEstimatorFactory))
 {}
 
 GraphicInscriber::GraphicIteration::GraphicIteration(
-        MinkowskiSum minkowskiSum,
-        const Polytope* contour,
-        double patternStarRatio,
+        std::unique_ptr<MinkowskiSum> minkowskiSum,
+        std::unique_ptr<DomainEstimator> domainEstimator,
+        std::unique_ptr<ActualAccuracyEstimator> actualAccuracyEstimator,
+        double gridLipschitzConstant,
         VectorSampling<Location> sampling)
     : Iteration(
           sampling.container().radius(),
           Placement{sampling.container().center(), 0.})
-    , minkowskiSum(std::move(minkowskiSum))
-    , contour(contour)
-    , gridLipschitzConstant(patternStarRatio)
-    , selectionSampling(std::move(sampling))
-    , radiusStep(this->selectionSampling.gridStep() * RADIUS_STEP_RATIO)
+    , minkowskiSum_(std::move(minkowskiSum))
+    , domainEstimator_(std::move(domainEstimator))
+    , actualAccuracyEstimator_(std::move(actualAccuracyEstimator))
+    , gridLipschitzConstant(gridLipschitzConstant)
+    , sampling(std::move(sampling))
+    , radiusStep(this->sampling.gridStep() * RADIUS_STEP_RATIO)
 {}
 
 std::unique_ptr<IterativeInscriber::Iteration>
-GraphicInscriber::init(const Polytope* pattern, const Polytope* contour) const
+GraphicInscriber::init(
+        const Polytope* pattern,
+        const Polytope* contour,
+        double targetPrecision) const
 {
     const auto invertedPattern = Polytope::invert(*pattern);
-    auto minkowskiSum = MinkowskiSum{
-            *contour,
-            convexDecompositor_(&invertedPattern)};
+    auto minkowskiSum = std::make_unique<MinkowskiSum>(
+        *contour,
+        convexDecompositor_(&invertedPattern));
+    auto domainEstimator = std::make_unique<DomainEstimator>(
+        domainEstimatorFactory_(minkowskiSum.get(), contour));
+    auto actualAccuracyEstimator = std::make_unique<ActualAccuracyEstimator>(
+        accuracyEstimatorFactory_(
+            domainEstimator.get(),
+            pattern,
+            targetPrecision));
+    // Initially all the voxels are in undefined state
     const auto sampling = VectorSampling<Location>{
         boundingBox(contour->vertices()),
         8,
-        Location::Outer};
+        Location::Boundary};
 
     return std::make_unique<GraphicIteration>(
         std::move(minkowskiSum),
-        contour,
+        std::move(domainEstimator),
+        std::move(actualAccuracyEstimator),
         InscribedRadius::lipschitzConstant(*pattern) * std::sqrt(DIMS),
         std::move(sampling));
 }
@@ -62,63 +76,38 @@ std::unique_ptr<IterativeInscriber::Iteration> GraphicInscriber::iterate(
 {
     auto& it = static_cast<GraphicIteration&>(*iteration);
 
-    auto newSampling = rasterize(
-        it.minkowskiSum,
-        it.solution.radius() + it.radiusStep,
-        *it.contour,
-        it.selectionSampling);
+    const auto newSampling = (*it.domainEstimator_)(
+        it.sampling,
+        it.solution.radius() + it.radiusStep);
 
-    bool haveEmptyVoxel = false;
-    Coordinates lastEmptyCoords = Coordinates::constant(0);
+    reportSamplingDistribution(newSampling);
+
+    bool haveFilledVoxel = false;
+    Coordinates lastFilledCoords = Coordinates::constant(0);
     newSampling.voxels().process([&] (const auto& voxel) {
-        if (voxel.value == Location::Outer) {
-            haveEmptyVoxel = true;
-            lastEmptyCoords = voxel.coordinates();
+        if (voxel.value == Location::Inner) {
+            haveFilledVoxel = true;
+            lastFilledCoords = voxel.coordinates();
         }
     });
 
-    if (haveEmptyVoxel) {
+    if (haveFilledVoxel) {
         it.solution = {
-            it.selectionSampling.toGlobal(lastEmptyCoords),
+            it.sampling.toGlobal(lastFilledCoords),
             it.solution.radius() + it.radiusStep
         };
 
-        it.selectionSampling = shrink(newSampling);
+        it.sampling = shrink(newSampling);
     } else {
-        it.precision = it.radiusStep +
-            it.gridLipschitzConstant *
-            it.selectionSampling.gridStep();
+        it.precision = (*it.actualAccuracyEstimator_)(
+            it.solution.radius(),
+            it.radiusStep,
+            it.sampling);
 
-        it.selectionSampling = refine(it.selectionSampling);
+        it.sampling = refine(it.sampling);
 
         it.radiusStep /= 2.;
     }
 
     return std::move(iteration);
-}
-
-VectorSampling<Location> GraphicInscriber::rasterize(
-        const MinkowskiSum& minkowskiSum,
-        double radius,
-        const Polytope& contour,
-        const VectorSampling<Location>& selectionSampling) const
-{
-    auto result = selectionSampling;
-    msumRasterizer_(minkowskiSum, radius, &result);
-
-    VectorSparseRaster<Location> feasibility = selectionSampling;
-    assert(contourRasterizer_);
-    contourRasterizer_(
-        selectionSampling.toLocal(contour.facetGeometries()),
-        &feasibility);
-
-    result.voxels().process([&] (auto& voxel) {
-        auto* feasibilityVoxel = feasibility.find(voxel.coordinates());
-        assert(feasibilityVoxel);
-        if (feasibilityVoxel->value == Location::Outer) {
-            voxel.value = Location::Inner;
-        }
-    });
-
-    return result;
 }

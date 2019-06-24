@@ -40,6 +40,10 @@ public:
     {
         return count_ > 0 ? sum_ / count_ : 0;
     }
+    Value sum() const
+    {
+        return sum_;
+    }
 
 private:
     Value max_;
@@ -86,7 +90,7 @@ struct Stats final : public NonCopyable {
     }
 
     std::map<PolytopeFaceKey, size_t> polytopeFacesCount;
-    size_t patternConvexPartsCount;
+    ValueStats<size_t> patternConvexPartsCount;
     ValueStats<size_t> geometryElementsCount;
 
     ValueStats<size_t> gridSize;

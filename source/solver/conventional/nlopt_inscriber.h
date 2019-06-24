@@ -18,7 +18,11 @@ class NloptInscriber final : public Inscriber
 public:
     enum class Algorithm {
         DirectScaled,
-        DirectNonScaled
+        DirectLocalScaled,
+        DirectLocalRandomizedScaled,
+        DirectNonScaled,
+        DirectLocalNonScaled,
+        DirectLocalRandomizedNonScaled
     };
 
     NloptInscriber(

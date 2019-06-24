@@ -27,16 +27,18 @@ and references therein.
 
 The general `xdscribe` usage is as follows
 ```
-xdscribe contour_file pattern_file stop_predicate inscriber_code [ tries [ direct_magic ] ]
+xdscribe pattern_file contour_file stop_predicate inscriber_code [ tries [ direct_magic ] ]
 ```
-where `contour_file` and `pattern_file` refer to contour and pattern models respectively, provided they are in [Wavefront .OBJ](https://en.wikipedia.org/wiki/Wavefront_.obj_file) file format. Note that only triangular facets are supported! Look at the `examples` directory for some models to start.
+where `pattern_file` and `contour_file` refer to pattern and contour models respectively, provided they are in [Wavefront .OBJ](https://en.wikipedia.org/wiki/Wavefront_.obj_file) file format. Note that only triangular facets are supported! Look at the `examples` directory for some models to start with.
 
 `stop_predicate` should be one of the following:
 * `<target_precision>`, for example `1e-3`
 * `v<target_value>`, for example `v0.5`. Note that this value should be reachable, otherwise `xdscribe` won't terminate!
 * `s<seconds_to_run>`, for example `s20`.
 
-`inscriber_code` refers to a particular method to use. There are plenty of them, invoke `xdscribe` with no arguments to see the choices. For example, `gfhbr` means graphic algorithm with a flood-fill pattern convex decomposition, halfspaces minkowski sum rasterizer and polytope rasterizer with bbox-enhanced facets rasterization and ray-combined inner region rasterization.
+Note that in any case the running time is limited to 5 hours! If you are ready to wait longer, feel free to modify default duration value in `solver/inscriber.h` file.
+
+`inscriber_code` refers to a particular method to use. There are plenty of them, invoke `xdscribe` with no arguments to see the choices. For example, `gfhbrl` means graphic inverse algorithm with a flood-fill pattern convex decomposition, halfspaces minkowski sum rasterizer, contour rasterizer with bounding box enhanced facets rasterization and ray-combined inner region rasterization, lipschitzian accuracy estimation.
 
 `tries` specifies the number of algorithm invocations within the single xdscribe run. This is useful for more precise time measurement.
 
@@ -45,7 +47,7 @@ where `contour_file` and `pattern_file` refer to contour and pattern models resp
 
 For example, to test run after building under `build` subdirectory in Unix command line type
 ```
-./xdscribe ../examples/tetrahedron_4.obj ../examples/box_12.obj 1e-3 gfhbr
+./xdscribe ../examples/tetrahedron_4.obj ../examples/box_12.obj 1e-3 gfhbrl
 ```
 
 ### Inverse branch-and-bound technique description

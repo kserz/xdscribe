@@ -7,8 +7,6 @@
 
 #include "polytope_rasterizer.h"
 
-#include "helper/stats.h"
-
 PolytopeRasterizer polytopeRasterizer(
         FacetRasterizer facetRasterizer,
         InnerRegionRasterizer innerRegionRasterizer)
@@ -19,16 +17,10 @@ PolytopeRasterizer polytopeRasterizer(
                 const Generator<const Facet&>& localPolytopeGeometry,
                 SparseRaster<Location>* raster)
         {
-            size_t geometryElementsCount = 0;
-
             localPolytopeGeometry.process([&] (const Facet& facet) {
-                ++geometryElementsCount;
                 facetRasterizer(facet, raster);
             });
 
             innerRegionRasterizer(localPolytopeGeometry, raster);
-
-            Stats::instance().geometryElementsCount.report(
-                geometryElementsCount);
         };
 }

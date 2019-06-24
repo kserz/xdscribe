@@ -23,7 +23,7 @@ Placement IterativeInscriber::operator ()(
     };
 
     size_t steps = 0;
-    auto iteration = init(&pattern, &contour);
+    auto iteration = init(&pattern, &contour, stopPredicate.targetPrecision);
     auto result = iteration->solution;
     while (!stopPredicate(
                iteration->precision,

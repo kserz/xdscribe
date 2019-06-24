@@ -10,6 +10,7 @@
 #include "geometry/entity/polytope.h"
 #include "geometry/kernel.h"
 #include "geometry/location/location.h"
+#include "helper/stats.h"
 #include "solver/inscribed_radius.h"
 #include "utility/noncopyable.h"
 
@@ -25,6 +26,9 @@ public:
 
     double operator ()(const Point& point) const
     {
+        ++Stats::instance().objectiveCalls;
+
+        // TODO: Check if performance of location matters for hard problems
         if (locatePoint(point, contour_->facetGeometries())
                 == Location::Inner) {
             return inscribedRadius_(point);

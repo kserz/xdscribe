@@ -34,7 +34,8 @@ protected:
 
     virtual std::unique_ptr<Iteration> init(
             const Polytope* pattern,
-            const Polytope* contour) const = 0;
+            const Polytope* contour,
+            double targetPrecision) const = 0;
     // Iterations should be as short as possible
     // to produce the best result within time limits
     virtual std::unique_ptr<Iteration> iterate(

@@ -28,10 +28,12 @@ public:
             : targetPrecision(targetPrecision.value_or(4. * MEPS))
             , targetValue(targetValue.value_or(
                   std::numeric_limits<double>::max()))
-            , maxDuration(maxDuration.value_or(72h))
+            // WARNING: this may be too low for some applications
+            // but for the current research anything longer doesn't matter
+            , maxDuration(maxDuration.value_or(5h))
         {
             assert(targetPrecision || targetValue || maxDuration);
-            if (this->targetPrecision < 4. * MEPS) {
+            if (this->targetPrecision < 2. * MEPS) {
                 throw std::runtime_error("Too small precision specified!");
             }
         }

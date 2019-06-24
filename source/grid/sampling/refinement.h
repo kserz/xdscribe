@@ -18,10 +18,12 @@
 
 static const size_t REFINEMENT_SCALE = 2;
 
-// Return box perfectly aligned to voxel boundaries
+// Returns box perfectly aligned to voxel boundaries
 Box voxelsBoundingBox(const std::vector<Coordinates>& selection);
 
-// Returns sampling filled with outer values
+// Removes all the empty voxels from the sampling and shrinks container
+// Returns sampling filled with boundary(undefined) values.
+// NB. Subsequent shrinks/refines should be correct in any order!
 template<template<class> class Sampling>
 Sampling<Location> shrink(const Sampling<Location>& sampling)
 {
@@ -29,7 +31,7 @@ Sampling<Location> shrink(const Sampling<Location>& sampling)
     std::vector<Coordinates> selection;
     selection.reserve(sampling.size());
     sampling.voxels().process([&] (const auto& voxel) {
-        if (voxel.value != Location::Inner) {
+        if (voxel.value != Location::Outer) {
             selection.push_back(voxel.coordinates());
         }
     });
@@ -57,19 +59,21 @@ Sampling<Location> shrink(const Sampling<Location>& sampling)
         mapper,
         typename Sampling<Location>::Raster{
             selection,
-            Location::Outer
+            Location::Boundary
         }
     };
 }
 
-// Returns sampling filled with outer values
+// Refines non-empty part of sampling
+// Returns sampling filled with boundary(undefined) values
+// NB. Subsequent shrinks/refines should be correct in any order!
 template<template<class> class Sampling>
 Sampling<Location> refine(const Sampling<Location>& sampling)
 {
     auto selection = compositeGenerator<const Coordinates&>(
         sampling.voxels(),
         [&] (const auto& voxel, auto&& yield) {
-            if (voxel.value == Location::Inner) {
+            if (voxel.value == Location::Outer) {
                 return;
             }
 
@@ -85,7 +89,7 @@ Sampling<Location> refine(const Sampling<Location>& sampling)
         Mapper{sampling.container(), sampling.gridSize() * REFINEMENT_SCALE},
         typename Sampling<Location>::Raster{
             selection,
-            Location::Outer,
+            Location::Boundary,
             sampling.size() *
                 rasterCapacity(Coordinates::constant(REFINEMENT_SCALE))
         }

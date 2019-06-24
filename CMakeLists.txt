@@ -93,6 +93,12 @@ add_executable(
     source/solver/conventional/nlopt_inscriber.h
     source/solver/conventional/objective_bounder.h
 
+    source/solver/inverse/accuracy_estimator.cpp
+    source/solver/inverse/accuracy_estimator.h
+    source/solver/inverse/domain_estimator.cpp
+    source/solver/inverse/domain_estimator.h
+    source/solver/inverse/general_accuracy_estimator.cpp
+    source/solver/inverse/general_accuracy_estimator.h
     source/solver/inverse/graphic_inscriber.cpp
     source/solver/inverse/graphic_inscriber.h
     source/solver/inverse/halfspace_part_rasterizer.cpp
@@ -173,3 +179,4 @@ add_external_lib(
     "v19.17"
     "${PROJECT_SOURCE_DIR}/extern/dlib.patch"
 )
+

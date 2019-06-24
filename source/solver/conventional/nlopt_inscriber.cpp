@@ -31,8 +31,16 @@ nlopt::opt createOptimizator(
         switch (algorithm) {
         case Algorithm::DirectScaled:
             return nlopt::opt(nlopt::algorithm::GN_DIRECT, DIMS);
+        case Algorithm::DirectLocalScaled:
+            return nlopt::opt(nlopt::algorithm::GN_DIRECT_L, DIMS);
+        case Algorithm::DirectLocalRandomizedScaled:
+            return nlopt::opt(nlopt::algorithm::GN_DIRECT_L_RAND, DIMS);
         case Algorithm::DirectNonScaled:
             return nlopt::opt(nlopt::algorithm::GN_DIRECT_NOSCAL, DIMS);
+        case Algorithm::DirectLocalNonScaled:
+            return nlopt::opt(nlopt::algorithm::GN_DIRECT_L_NOSCAL, DIMS);
+        case Algorithm::DirectLocalRandomizedNonScaled:
+            return nlopt::opt(nlopt::algorithm::GN_DIRECT_L_RAND_NOSCAL, DIMS);
         }
 
         // Should not reach here
@@ -102,7 +110,6 @@ Placement NloptInscriber::operator ()(
     opt.set_lower_bounds(lowerBounds);
     opt.set_upper_bounds(upperBounds);
 
-    opt.set_xtol_abs(stopPredicate.targetPrecision);
     opt.set_ftol_abs(stopPredicate.targetPrecision);
     opt.set_stopval(stopPredicate.targetValue);
     opt.set_maxtime(std::chrono::duration_cast<std::chrono::seconds>(

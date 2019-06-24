@@ -65,13 +65,16 @@ MinkowskiSum::prepareTemplates(
 {
     std::vector<ConvexPartTemplate> result;
     size_t patternPartsCount = 0;
+    size_t geometryCount = 0;
     patternDecomposition.process([&] (auto&& patternPart) {
-        ++patternPartsCount;
         contour.facetGeometries().process([&] (auto&& contourFacet) {
-            result.push_back(convexSum(contourFacet, patternPart));
+            auto convexPart = convexSum(contourFacet, patternPart);
+            geometryCount += convexPart.facets.size();
+            result.push_back(std::move(convexPart));
         });
     });
-    Stats::instance().patternConvexPartsCount = patternPartsCount;
+    Stats::instance().patternConvexPartsCount.report(patternPartsCount);
+    Stats::instance().geometryElementsCount.report(geometryCount);
     return result;
 }
 

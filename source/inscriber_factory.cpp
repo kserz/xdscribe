@@ -20,6 +20,9 @@
 #include "solver/conventional/ghj_inscriber.h"
 #include "solver/conventional/nlopt_inscriber.h"
 #include "solver/conventional/objective_bounder.h"
+#include "solver/inverse/accuracy_estimator.h"
+#include "solver/inverse/domain_estimator.h"
+#include "solver/inverse/general_accuracy_estimator.h"
 #include "solver/inverse/graphic_inscriber.h"
 #include "solver/inverse/halfspace_part_rasterizer.h"
 #include "solver/inverse/minkowski_sum_rasterizer.h"
@@ -265,25 +268,42 @@ const auto minkowskiSumRasterizerFactory =
                     polytopeRasterizerFactory("convex part polytope rasterizer"))}
         });
 
+const auto accuracyEstimatorFactory =
+    selectionFactory<AccuracyEstimatorFactory>(
+        "accuracy estimation procedure",
+        {
+            {'g', Parametrized::valueFactory<AccuracyEstimatorFactory>(
+                "general accuracy estimation",
+                generalAccuracyEstimatorFactory())},
+            {'l', Parametrized::valueFactory<AccuracyEstimatorFactory>(
+                "Lipschitzian accuracy estimation",
+                lipschitzianAccuracyEstimatorFactory())}
+        });
+
 const auto graphicInscriberFactory = Parametrized::composition<
     std::unique_ptr<Inscriber>,
     ConvexDecompositor,
     MinkowskiSumRasterizer,
-    PolytopeRasterizer>(
+    PolytopeRasterizer,
+    AccuracyEstimatorFactory>(
         "graphic inverse inscriber",
         {[] (
                 ConvexDecompositor convexDecompositor,
                 MinkowskiSumRasterizer minkowskiSumRasterizer,
                 PolytopeRasterizer polytopeRasterizer,
+                AccuracyEstimatorFactory accuracyEstimatorFactory,
                 auto...) {
             return std::make_unique<GraphicInscriber>(
                 std::move(convexDecompositor),
-                std::move(minkowskiSumRasterizer),
-                std::move(polytopeRasterizer));
+                graphicDomainEstimatorFactory(
+                    std::move(minkowskiSumRasterizer),
+                    std::move(polytopeRasterizer)),
+                accuracyEstimatorFactory);
         }},
         convexDecompositorFactory("pattern convex decompositor"),
         minkowskiSumRasterizerFactory,
-        polytopeRasterizerFactory("contour polytope rasterizer"));
+        polytopeRasterizerFactory("contour polytope rasterizer"),
+        accuracyEstimatorFactory);
 
 const auto objectiveBounderFactory =
     selectionFactory<ObjectiveBounder>(
@@ -311,9 +331,21 @@ const auto nloptAlgorithmFactory =
             {'n', Parametrized::valueFactory<NloptInscriber::Algorithm>(
                 "DIRECT non-scaled nlop algorithm",
                 NloptInscriber::Algorithm::DirectNonScaled)},
+            {'l', Parametrized::valueFactory<NloptInscriber::Algorithm>(
+                "DIRECT non-scaled locally-biased nlop algorithm",
+                NloptInscriber::Algorithm::DirectLocalNonScaled)},
+            {'r', Parametrized::valueFactory<NloptInscriber::Algorithm>(
+                "DIRECT non-scaled locally-biased randomized nlop algorithm",
+                NloptInscriber::Algorithm::DirectLocalRandomizedNonScaled)},
             {'s', Parametrized::valueFactory<NloptInscriber::Algorithm>(
                 "DIRECT scaled nlop algorithm",
                 NloptInscriber::Algorithm::DirectScaled)},
+            {'o', Parametrized::valueFactory<NloptInscriber::Algorithm>(
+                "DIRECT scaled locally-biased nlop algorithm",
+                NloptInscriber::Algorithm::DirectLocalScaled)},
+            {'a', Parametrized::valueFactory<NloptInscriber::Algorithm>(
+                "DIRECT scaled randomized locally-biased nlop algorithm",
+                NloptInscriber::Algorithm::DirectLocalRandomizedScaled)},
         });
 
 const auto nloptInscriberFactory = Parametrized::composition<

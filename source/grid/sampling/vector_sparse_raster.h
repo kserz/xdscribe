@@ -94,8 +94,7 @@ public:
     }
 
 protected:
-    // Sorting is needed to produce correct indices, slices
-    // and find to work
+    // Sorting is needed to produce correct slices and find to work
     std::vector<Voxel> sortedSelection_;
 };
 

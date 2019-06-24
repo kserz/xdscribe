@@ -36,7 +36,11 @@ private:
         // We split subproblems with the biggest value first
         bool operator <(const Subproblem& rhs) const
         {
-            return valueBounds.upper() > rhs.valueBounds.upper();
+            if (std::fabs(valueBounds.upper() - rhs.valueBounds.upper()) > MEPS) {
+                return valueBounds.upper() > rhs.valueBounds.upper();
+            } else {
+                return valueBounds.lower() > rhs.valueBounds.lower();
+            }
         }
     };
 
@@ -49,7 +53,8 @@ private:
 
     virtual std::unique_ptr<Iteration> init(
             const Polytope* pattern,
-            const Polytope* contour) const override;
+            const Polytope* contour,
+            double targetPrecision) const override;
     virtual std::unique_ptr<Iteration> iterate(
         std::unique_ptr<Iteration> previous) const override;
 

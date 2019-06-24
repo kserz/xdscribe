@@ -8,7 +8,6 @@
 #pragma once
 
 #include "geometry/location/location.h"
-#include "helper/image_stats.h"
 #include "solver/inverse/minkowski_sum.h"
 #include "grid/rasterization/polytope_rasterizer.h"
 #include "grid/sampling/sampling.h"
@@ -61,8 +60,6 @@ MinkowskiSumRasterizer decomposingMSRasterizer(
                 convexPartRasterizer(convexPart, &partSampling);
                 combineImages(partSampling, sampling);
             });
-
-        reportSamplingDistribution(*sampling);
     };
 }
 

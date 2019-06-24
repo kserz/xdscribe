@@ -28,7 +28,8 @@ GHJInscriber::GHJIteration::GHJIteration(
 
 std::unique_ptr<IterativeInscriber::Iteration> GHJInscriber::init(
         const Polytope* pattern,
-        const Polytope* contour) const
+        const Polytope* contour,
+        double /*targetPrecision*/) const
 {
     Objective objective(pattern, contour);
     const Box container = boundingBox(contour->vertices());

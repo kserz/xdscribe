@@ -14,6 +14,7 @@
 #include "helper/stopwatch.h"
 #include "inscriber_factory.h"
 #include "solver/inscriber.h"
+#include "solver/inverse/graphic_inscriber.h"
 
 #include <iostream>
 #include <exception>
@@ -36,9 +37,9 @@ int main(int argc, char** argv)
 {
     if (argc < 5) {
         std::cout << "\nUsage: " << argv[0]
-                  << " contour_file pattern_file stop_predicate inscriber_code "
+                  << " pattern_file contour_file stop_predicate inscriber_code "
                      "[ tries [ direct_magic ] ]" << std::endl;
-        std::cout << "\nContour and pattern should be Wavefront .OBJ files "
+        std::cout << "\nPattern and contour should be Wavefront .OBJ files "
                      "consisting of triangles only.\n";
         std::cout << "\nStop predicate is one of the following:\n"
                   << "\t<target precision>\n"
@@ -56,8 +57,8 @@ int main(int argc, char** argv)
     }
 
     try {
-        auto pattern = Polytope::loadObj(argv[2]);
-        auto contour = Polytope::loadObj(argv[1]);
+        auto pattern = Polytope::loadObj(argv[1]);
+        auto contour = Polytope::loadObj(argv[2]);
 
         if (locatePoint(Point::constant(0), pattern.facetGeometries()) !=
                 Location::Inner) {
@@ -72,7 +73,9 @@ int main(int argc, char** argv)
             magic = std::atof(argv[6]);
         }
 
-        auto inscriber = makeInscriber(argv[4], magic);
+        const auto inscriber = makeInscriber(argv[4], magic);
+        const bool isInscriberGraphic =
+            dynamic_cast<GraphicInscriber*>(inscriber.get()) != nullptr;
 
         Placement result{Point::constant(0.), 0.};
         std::cout << "Running " << tries << " tries" << std::endl;
@@ -99,7 +102,7 @@ int main(int argc, char** argv)
                       << " count " << kv.second;
         }
         std::cout << "\nPattern parts: "
-                  << Stats::instance().patternConvexPartsCount;
+                  << Stats::instance().patternConvexPartsCount.max();
 
         std::cout << std::endl;
         std::cout.precision(5);
@@ -113,13 +116,22 @@ int main(int argc, char** argv)
                              Stats::ImageType(i));
         }
 
-        std::cout << "\nObjective calls: " << Stats::instance().objectiveCalls;
+        // We have no objective calls number for graphic method
+        // but it is closely related to the number of points
+        // where some information on objective have been requested
+        std::cout << "\n\nObjective calls: "
+                  << (isInscriberGraphic ?
+                          Stats::instance().samplingSize.sum() :
+                          Stats::instance().objectiveCalls);
 
         std::cout << "\n\nResult center: " << result.center()
                   << "\nResult radius: " << result.radius();
 
-        std::cout << "\n\nRuntime of a single try: "
-                  << Stopwatch::measurement(0).runtimeSeconds() / tries;
+        std::cout << "\n\nRuntime of a single try: ";
+        std::cout.setf(std::ios::fixed);
+        std::cout.setf(std::ios::right);
+        std::cout.width(11);
+        std::cout << Stopwatch::measurement(0).runtimeSeconds() / tries;
 
         std::cout << std::endl;
     } catch (const std::exception& e) {
