@@ -47,7 +47,7 @@ Note that in any case the running time is limited to 5 hours! If you are ready t
 
 For example, to test run after building under `build` subdirectory in Unix command line type
 ```
-./xdscribe ../examples/tetrahedron_4.obj ../examples/box_12.obj 1e-3 gfhbrl
+./xdscribe ../examples/box_12.obj ../examples/tetrahedron_4.obj 1e-3 gfhbrl
 ```
 
 ### Inverse branch-and-bound technique description
