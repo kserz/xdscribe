@@ -10,7 +10,6 @@
 #include "geometry/entity/bounding_box.h"
 #include "geometry/location/location.h"
 #include "grid/sampling/refinement.h"
-#include "solver/inscribed_radius.h"
 
 const double RADIUS_STEP_RATIO = 1.;
 
@@ -27,7 +26,6 @@ GraphicInscriber::GraphicIteration::GraphicIteration(
         std::unique_ptr<MinkowskiSum> minkowskiSum,
         std::unique_ptr<DomainEstimator> domainEstimator,
         std::unique_ptr<ActualAccuracyEstimator> actualAccuracyEstimator,
-        double gridLipschitzConstant,
         VectorSampling<Location> sampling)
     : Iteration(
           sampling.container().radius(),
@@ -35,7 +33,6 @@ GraphicInscriber::GraphicIteration::GraphicIteration(
     , minkowskiSum_(std::move(minkowskiSum))
     , domainEstimator_(std::move(domainEstimator))
     , actualAccuracyEstimator_(std::move(actualAccuracyEstimator))
-    , gridLipschitzConstant(gridLipschitzConstant)
     , sampling(std::move(sampling))
     , radiusStep(this->sampling.gridStep() * RADIUS_STEP_RATIO)
 {}
@@ -67,7 +64,6 @@ GraphicInscriber::init(
         std::move(minkowskiSum),
         std::move(domainEstimator),
         std::move(actualAccuracyEstimator),
-        InscribedRadius::lipschitzConstant(*pattern) * std::sqrt(DIMS),
         std::move(sampling));
 }
 

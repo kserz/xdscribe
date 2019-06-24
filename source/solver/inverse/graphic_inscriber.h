@@ -28,14 +28,11 @@ private:
                 std::unique_ptr<MinkowskiSum> minkowskiSum,
                 std::unique_ptr<DomainEstimator> domainEstimator,
                 std::unique_ptr<ActualAccuracyEstimator> actualAccuracyEstimator,
-                double gridLipschitzConstant,
                 VectorSampling<Location> sampling);
 
         const std::unique_ptr<MinkowskiSum> minkowskiSum_;
         const std::unique_ptr<DomainEstimator> domainEstimator_;
         const std::unique_ptr<ActualAccuracyEstimator> actualAccuracyEstimator_;
-        // Maximum difference in objective value over a voxel
-        const double gridLipschitzConstant;
 
         VectorSampling<Location> sampling;
         double radiusStep;
