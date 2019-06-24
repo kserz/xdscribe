@@ -89,6 +89,11 @@ struct Stats final : public NonCopyable {
         return instance_;
     }
 
+    void reset()
+    {
+        *this = Stats{};
+    }
+
     std::map<PolytopeFaceKey, size_t> polytopeFacesCount;
     ValueStats<size_t> patternConvexPartsCount;
     ValueStats<size_t> geometryElementsCount;

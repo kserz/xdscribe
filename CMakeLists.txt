@@ -180,3 +180,4 @@ add_external_lib(
     "${PROJECT_SOURCE_DIR}/extern/dlib.patch"
 )
 
+include(measure_performance)

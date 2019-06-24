@@ -82,6 +82,8 @@ int main(int argc, char** argv)
         {
             Stopwatch s(0, "overall");
             for (unsigned t = 0; t < tries; ++t) {
+                // We keep statistics from the last run only
+                Stats::instance().reset();
                 result = (*inscriber)(pattern, contour, stopPredicate);
             }
         }
