@@ -28,9 +28,8 @@ public:
     {
         ++Stats::instance().objectiveCalls;
 
-        // TODO: Check if performance of location matters for hard problems
-        if (locatePoint(point, contour_->facetGeometries())
-                == Location::Inner) {
+        // Point location have negligible impact on performance
+        if (locatePoint(point, contour_->facetGeometries()) == Location::Inner) {
             return inscribedRadius_(point);
         } else {
             return 0.;

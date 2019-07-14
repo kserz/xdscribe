@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.10...3.14)
 if(NOT SELECTED_METHODS)
     # ns gives constantly better performance among NLopt-based methods
     # when searching for proven solution
-    set(SELECTED_METHODS "gfhbrg" "gfpbrbrg" "gfpbrbrl" "hs" "ns" "nr")
+    set(SELECTED_METHODS "gfhbrg" "gfhbrl" "gfpbrbrg" "hs" "ns" "nr")
 endif()
 
 if(NOT SELECTED_FIELDS)
@@ -157,12 +157,12 @@ add_methods_comparison(
 #    "1"
 #)
 
-#add_methods_comparison(
-#    "examples/cuts/standard_126"
-#    "examples/stones/rhombic_rough_576"
-#    "1e-2"
-#    "1"
-#)
+add_methods_comparison(
+    "examples/cuts/standard_126"
+    "examples/stones/rhombic_rough_576"
+    "1e-2"
+    "1"
+)
 #add_methods_comparison(
 #    "examples/cuts/standard_126"
 #    "examples/stones/rhombic_rough_576"
@@ -172,11 +172,23 @@ add_methods_comparison(
 #add_methods_comparison(
 #    "examples/cuts/standard_126"
 #    "examples/stones/rhombic_rough_576"
-#    "v1.429"
+#    "1e-4"
 #    "1"
 #)
+add_methods_comparison(
+    "examples/cuts/standard_126"
+    "examples/stones/rhombic_rough_576"
+    "v1.429"
+    "1"
+)
 
 # ====== Hard problems
+#add_methods_comparison(
+#    "examples/cuts/bstilltrue_194"
+#    "examples/stones/rhombic_rough_2304"
+#    "1e-2"
+#    "1"
+#)
 #add_methods_comparison(
 #    "examples/cuts/bstilltrue_194"
 #    "examples/stones/rhombic_rough_2304"
@@ -193,6 +205,12 @@ add_methods_comparison(
 #add_methods_comparison(
 #    "examples/cuts/rosehrttrue_104"
 #    "examples/stones/tetra_rough_912"
+#    "1e-2"
+#    "1"
+#)
+#add_methods_comparison(
+#    "examples/cuts/rosehrttrue_104"
+#    "examples/stones/tetra_rough_912"
 #    "1e-3"
 #    "1"
 #)
@@ -203,6 +221,12 @@ add_methods_comparison(
 #    "1"
 #)
 
+#add_methods_comparison(
+#    "examples/cuts/1stwave_172"
+#    "examples/stones/tetra_flat_3648"
+#    "1e-2"
+#    "1"
+#)
 #add_methods_comparison(
 #    "examples/cuts/1stwave_172"
 #    "examples/stones/tetra_flat_3648"
@@ -219,6 +243,12 @@ add_methods_comparison(
 #add_methods_comparison(
 #    "examples/cuts/novice7_86"
 #    "examples/stones/octa_rough_6432"
+#    "1e-2"
+#    "1"
+#)
+#add_methods_comparison(
+#    "examples/cuts/novice7_86"
+#    "examples/stones/octa_rough_6432"
 #    "1e-3"
 #    "1"
 #)
@@ -229,7 +259,7 @@ add_methods_comparison(
 #    "1"
 #)
 
-set(HEADER_FILE "${PROJECT_BINARY_DIR}/reports/header.txt")
+set(HEADER_FILE "${PROJECT_BINARY_DIR}/reports_header.txt")
 FILE(WRITE "${HEADER_FILE}" "Sample \\ Method | ")
 foreach(METHOD ${SELECTED_METHODS})
     FILE(APPEND "${HEADER_FILE}" "${METHOD} | ")
