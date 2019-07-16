@@ -1,6 +1,6 @@
 # xdscribe
 
-This code is part of the so called **inverse branch-and-bound technique** research. It solves the particular design centering problem from the diamonds cutting industry by a set of methods providing both the reference implementation of the inverse one and a relative performance comparison. See problem description and technique description sections below for further information.
+This code is part of the so called **inverse graphical technique** research. It solves the particular design centering problem from the diamonds cutting industry by a set of methods providing both the reference implementation of the inverse one and a relative performance comparison. See problem description and technique description sections below for further information.
 
 All the source code in this repository is licensed under the GPLv3 license located in [LICENSE](LICENSE) file. Note that some external libraries are automatically downloaded and used having other licenses compatible with the main one. The data in `examples/cuts` and `examples/stones` directories have different licenses, see respective LICENSE files located there.
 
@@ -50,10 +50,10 @@ For example, to test run after building under `build` subdirectory in Unix comma
 ./xdscribe ../examples/box_12.obj ../examples/tetrahedron_4.obj 1e-3 gfhbrl
 ```
 
-### Inverse branch-and-bound technique description
+### Inverse graphical technique description
 
 The main idea of the inverse technique is to step away from the conventional optimization framework based on a user-defined function computing the objective value at a given point of the domain. Instead we depend on a procedure evaluating the domain region with objective bounded by a given value.
 
-Within the branch-and-bound approach this means that we branch on the objective value, like the well-known [bisection method](https://en.wikipedia.org/wiki/Bisection_method), than bound the region directly by pruning irrelevant area, and repeat these steps ensuring the region to be non-empty. The graphical inverse method implemented by xdscribe represents the regions by images on a volumetric raster consisting of inner, boundary and outer [voxels](https://en.wikipedia.org/wiki/Voxel). The images once acquired make region bounding and checking non-emptiness trivial tasks.
+The inverse approach is derived from the widely used branch-and-bound technique, but with objective and domain reversed. In particular, we branch on the objective value, like the well-known [bisection method](https://en.wikipedia.org/wiki/Bisection_method), than bound the region by pruning irrelevant area, and repeat these steps ensuring the region to be non-empty. The graphical inverse method implemented by xdscribe represents the regions by images on a volumetric raster consisting of inner, boundary and outer [voxels](https://en.wikipedia.org/wiki/Voxel). The images once acquired make region bounding and checking trivial tasks.
 
-For a design centering problem it remains to explain the procedure to obtain a region image with bounded objective value. This is done using the voxelization of contour [erosion](https://en.wikipedia.org/wiki/Erosion_(morphology)) by inverted pattern which means filling the voxels too close to contour and thus not containing pattern placements of an appropriate scale. The erosion itself is implemented by the well-known [Minkowski sum](https://en.wikipedia.org/wiki/Minkowski_addition) algorithms.
+For a design centering problem it remains to explain the procedure to obtain a region image with bounded objective value. This is done using the voxelization of contour [erosion](https://en.wikipedia.org/wiki/Erosion_(morphology)) by inverted pattern which means filling the image part too close to the contour and thus not containing pattern placements of an appropriate scale. The erosion itself is implemented by the well-known [Minkowski sum](https://en.wikipedia.org/wiki/Minkowski_addition) algorithms.
