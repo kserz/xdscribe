@@ -191,6 +191,7 @@ add_external_lib(
 add_executable(
     xdscribe_tests
 
+    tests/integration_test.cpp
     tests/tests_main.cpp
 
     tests/geometry/axis_distance_test.cpp
