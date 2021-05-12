@@ -8,7 +8,7 @@
 #pragma once
 
 #include "geometry/kernel.h"
-#include "geometry/utility/xd_iterator.h"
+#include "grid/sampling/xd_iterator.h"
 #include "utility/generator.h"
 
 #include <functional>

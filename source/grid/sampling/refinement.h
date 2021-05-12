@@ -10,9 +10,9 @@
 #include "geometry/entity/placement.h"
 #include "geometry/kernel.h"
 #include "geometry/location/location.h"
-#include "geometry/utility/xd_iterator.h"
 #include "grid/sampling/mapper.h"
 #include "grid/sampling/sparse_raster.h"
+#include "grid/sampling/xd_iterator.h"
 
 #include <vector>
 

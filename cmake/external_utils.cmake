@@ -57,6 +57,6 @@ endfunction()
 function(add_external_lib TARGET NAME SOURCE_URL BRANCH PATCH_FILE)
     get_external_source("${NAME}" "${SOURCE_URL}" "${BRANCH}" "${PATCH_FILE}")
     add_subdirectory("${EXTERNAL_CACHE_DIR}/${NAME}")
-    target_link_libraries(${TARGET} PRIVATE ${NAME})
+    target_link_libraries(${TARGET} PUBLIC ${NAME})
 endfunction()
 

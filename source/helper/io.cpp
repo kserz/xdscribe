@@ -7,7 +7,7 @@
 
 #include "io.h"
 
-#include "geometry/utility/xd_iterator.h"
+#include "grid/sampling/xd_iterator.h"
 
 #include <fstream>
 #include <map>

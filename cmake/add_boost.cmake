@@ -20,7 +20,7 @@ string(REPLACE "." "_" BOOST_BASE_PATH "boost_${BOOST_VERSION}")
 string(
     CONCAT
     BOOST_SOURCE_URL
-    "https://dl.bintray.com/boostorg/release/"
+    "https://boostorg.jfrog.io/artifactory/main/release/"
     "${BOOST_VERSION}/source/${BOOST_BASE_PATH}.tar.bz2"
 )
 

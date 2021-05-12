@@ -13,12 +13,8 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
 
-add_executable(
-    xdscribe
-
-    source/inscriber_factory.cpp
-    source/inscriber_factory.h
-    source/main.cpp
+add_library(
+    xdscribe_lib OBJECT
 
     source/geometry/kernel.h
 
@@ -46,7 +42,6 @@ add_executable(
     source/geometry/location/simplex_facet_overlap.h
 
     source/geometry/utility/cgal.h
-    source/geometry/utility/xd_iterator.h
 
     source/grid/rasterization/bbox_facet_rasterizer.cpp
     source/grid/rasterization/bbox_facet_rasterizer.h
@@ -58,7 +53,7 @@ add_executable(
     source/grid/rasterization/inner_region_rasterizer.h
     source/grid/rasterization/polytope_rasterizer.cpp
     source/grid/rasterization/polytope_rasterizer.h
-    
+
     source/grid/sampling/mapper.h
     source/grid/sampling/refinement.cpp
     source/grid/sampling/refinement.h
@@ -66,6 +61,7 @@ add_executable(
     source/grid/sampling/sparse_raster.h
     source/grid/sampling/vector_sampling.h
     source/grid/sampling/vector_sparse_raster.h
+    source/grid/sampling/xd_iterator.h
 
     source/helper/image_stats.cpp
     source/helper/image_stats.h
@@ -113,16 +109,28 @@ add_executable(
     source/utility/noncopyable.h
     source/utility/subsets.h
 )
+target_compile_features(xdscribe_lib PUBLIC cxx_std_17)
+target_include_directories(xdscribe_lib PUBLIC "${PROJECT_SOURCE_DIR}/source")
 
-target_compile_features(xdscribe PRIVATE cxx_std_17)
-target_include_directories(xdscribe PRIVATE "${PROJECT_SOURCE_DIR}/source")
+add_executable(
+    xdscribe
+
+    source/inscriber_factory.cpp
+    source/inscriber_factory.h
+    source/main.cpp
+
+    $<TARGET_OBJECTS:xdscribe_lib>
+)
+target_link_libraries(xdscribe PRIVATE xdscribe_lib)
 
 set(EXTERNAL_CACHE_DIR "${PROJECT_SOURCE_DIR}/extern/cache")
 include(add_boost)
 include(external_utils)
+include(helpers)
 
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 add_external_lib(
-    xdscribe
+    xdscribe_lib
     eigen
     "https://github.com/eigenteam/eigen-git-mirror.git"
     "3.3.7"
@@ -130,13 +138,13 @@ add_external_lib(
 )
 
 set(Boost_INCLUDE_DIR "${BOOST_SOURCE_DIR}")
-set(CGAL_HEADER_ONLY ON CACHE BOOL "" FORCE)
-set(CGAL_DISABLE_GMP ON CACHE BOOL "" FORCE)
-set(WITH_Eigen3 ON CACHE BOOL "" FORCE)
-set(WITH_CGAL_ImageIO OFF CACHE BOOL "" FORCE)
-set(WITH_CGAL_Qt5 OFF CACHE BOOL "" FORCE)
-set(WITH_GMP OFF CACHE BOOL "" FORCE)
-set(WITH_MPFR OFF CACHE BOOL "" FORCE)
+turnon(CGAL_HEADER_ONLY)
+turnon(CGAL_DISABLE_GMP)
+turnon(WITH_Eigen3)
+turnoff(WITH_CGAL_ImageIO)
+turnoff(WITH_CGAL_Qt5)
+turnoff(WITH_GMP)
+turnoff(WITH_MPFR)
 # CGAL does not work with add_subdirectory
 get_external_source(
     CGAL
@@ -146,38 +154,79 @@ get_external_source(
 )
 set(CGAL_DIR "${EXTERNAL_CACHE_DIR}/CGAL")
 find_package(CGAL)
-target_link_libraries(xdscribe PRIVATE CGAL::CGAL)
+target_link_libraries(xdscribe_lib PRIVATE CGAL::CGAL)
 
-set(NLOPT_FORTRAN OFF CACHE BOOL "" FORCE)
-set(NLOPT_GUILE OFF CACHE BOOL "" FORCE)
-set(NLOPT_MATLAB OFF CACHE BOOL "" FORCE)
-set(NLOPT_OCTAVE OFF CACHE BOOL "" FORCE)
-set(NLOPT_PYTHON OFF CACHE BOOL "" FORCE)
-set(NLOPT_SWIG OFF CACHE BOOL "" FORCE)
+turnoff(NLOPT_FORTRAN)
+turnoff(NLOPT_GUILE)
+turnoff(NLOPT_MATLAB)
+turnoff(NLOPT_OCTAVE)
+turnoff(NLOPT_PYTHON)
+turnoff(NLOPT_SWIG)
 add_external_lib(
-    xdscribe
+    xdscribe_lib
     nlopt
     "https://github.com/stevengj/nlopt.git"
     "v2.6.1"
     "${PROJECT_SOURCE_DIR}/extern/nlopt.patch"
 )
 
-set(DLIB_GIF_SUPPORT OFF CACHE BOOL "" FORCE)
-set(DLIB_JPEG_SUPPORT OFF CACHE BOOL "" FORCE)
-set(DLIB_LINK_WITH_SQLITE3 OFF CACHE BOOL "" FORCE)
-set(DLIB_NO_GUI_SUPPORT ON CACHE BOOL "" FORCE)
-set(DLIB_PNG_SUPPORT OFF CACHE BOOL "" FORCE)
-set(DLIB_USE_BLAS OFF CACHE BOOL "" FORCE)
-set(DLIB_USE_CUDA OFF CACHE BOOL "" FORCE)
-set(DLIB_USE_LAPACK OFF CACHE BOOL "" FORCE)
-set(DLIB_USE_LAPACK OFF CACHE BOOL "" FORCE)
-set(DLIB_USE_MKL_FFT OFF CACHE BOOL "" FORCE)
+turnoff(DLIB_GIF_SUPPORT)
+turnoff(DLIB_JPEG_SUPPORT)
+turnoff(DLIB_LINK_WITH_SQLITE3)
+turnon(DLIB_NO_GUI_SUPPORT)
+turnoff(DLIB_PNG_SUPPORT)
+turnoff(DLIB_USE_BLAS)
+turnoff(DLIB_USE_CUDA)
+turnoff(DLIB_USE_LAPACK)
+turnoff(DLIB_USE_LAPACK)
+turnoff(DLIB_USE_MKL_FFT)
 add_external_lib(
-    xdscribe
+    xdscribe_lib
     dlib
     "https://github.com/davisking/dlib.git"
     "v19.17"
     "${PROJECT_SOURCE_DIR}/extern/dlib.patch"
 )
+
+add_executable(
+    xdscribe_tests
+
+    tests/tests_main.cpp
+
+    tests/geometry/axis_distance_test.cpp
+    tests/geometry/helpers.h
+    tests/geometry/location_test.cpp
+    tests/geometry/polytope_test.cpp
+    tests/geometry/simplex_facet_overlap_test.cpp
+
+    tests/grid/mapper_test.cpp
+    tests/grid/refinement_test.cpp
+    tests/grid/xd_iterator_test.cpp
+
+    tests/utility/generator_test.cpp
+    tests/utility/lazy_test.cpp
+    tests/utility/subsets_test.cpp
+
+    $<TARGET_OBJECTS:xdscribe_lib>
+)
+target_include_directories(xdscribe_tests PRIVATE "${PROJECT_SOURCE_DIR}")
+target_link_libraries(xdscribe_tests PRIVATE xdscribe_lib)
+
+turnoff(CATCH_BUILD_TESTING)
+add_external_lib(
+    xdscribe_tests
+    Catch2
+    "https://github.com/catchorg/Catch2.git"
+    "v2.11.1"
+    ""
+)
+
+include(CTest)
+include("${EXTERNAL_CACHE_DIR}/Catch2/contrib/Catch.cmake")
+catch_discover_tests(xdscribe_tests)
+
+file(
+    COPY "${PROJECT_SOURCE_DIR}/examples"
+    DESTINATION "${PROJECT_BINARY_DIR}")
 
 include(measure_performance)

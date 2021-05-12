@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "geometry/utility/xd_iterator.h"
 #include "grid/sampling/sparse_raster.h"
+#include "grid/sampling/xd_iterator.h"
 #include "utility/generator.h"
 
 #include <algorithm>

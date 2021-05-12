@@ -8,8 +8,8 @@
 #include "bbox_facet_rasterizer.h"
 
 #include "geometry/entity/bounding_box.h"
-#include "geometry/utility/xd_iterator.h"
 #include "grid/rasterization/facet_box_overlap.h"
+#include "grid/sampling/xd_iterator.h"
 
 FacetRasterizer bBoxFacetRasterizer(double coarseThreshold)
 {
